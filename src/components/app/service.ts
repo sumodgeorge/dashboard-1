@@ -167,12 +167,12 @@ export const getCIMaterialList = (params) => {
                         commit: history?.Commit,
                         isSelected: indx == 0,
                         showChanges: false,
-                        webhookData: history.webhookData ? {
-                            id: history.webhookData.id,
-                            eventActionType: history.webhookData.eventActionType,
-                            data: history.webhookData.data
+                        webhookData: history.WebhookData ? {
+                            id: history.WebhookData.id,
+                            eventActionType: history.WebhookData.eventActionType,
+                            data: history.WebhookData.data
                         } : null
-                       
+
                     }
                 }) : []
             }
@@ -232,6 +232,8 @@ function cdMaterialListModal(artifacts) {
                     message: mat.message || "",
                     revision: mat.revision || "",
                     tag: mat.tag || "",
+                    webhookData: mat.webhookData || "",
+                    url: mat.url || ""
                 }
             }) : [],
         }

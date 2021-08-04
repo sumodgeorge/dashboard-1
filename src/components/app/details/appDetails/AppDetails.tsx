@@ -66,6 +66,7 @@ import { aggregateNodes, SecurityVulnerabilitites } from './utils';
 import { AppMetrics } from './AppMetrics';
 import { DeploymentStatusModal } from './DeploymentStatusModal';
 import { AppStatusModal } from './AppStatusModal';
+import { ReactComponent as Close } from '../../../../assets/icons/ic-close.svg';
 
 
 export type SocketConnectionType = 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' | 'DISCONNECTING';
@@ -411,8 +412,8 @@ export const Details: React.FC<{
                             ) : hibernateConfirmationModal === 'hibernate' ? (
                                 `Hibernate App`
                             ) : (
-                                'Restore App'
-                            )}
+                                        'Restore App'
+                                    )}
                         </button>
                     </ConfirmationDialog.ButtonGroup>
                 </ConfirmationDialog>
@@ -622,15 +623,14 @@ function CommitInfo({ onHide, material }) {
     return (
         <section className="app-summary__source-info">
             <div className="app-summary__source-table">
-                <div className="app-summary__source-row app-summary__source-row--header">
-                    {['Date', 'Commit Msg', 'Author', 'Revision'].map((title, idx) => (
-                        <span key={idx}>{title}</span>
-                    ))}
-                    <span>
-                        <div className="flex">
-                            <span>Branch / Tag</span>
-                        </div>
-                    </span>
+                <div className="p-20">
+                    <div className="flex" style={{ justifyContent: "space-between" }}>
+                        <div className="fs-20 fw-6 cn-9">Deployment details</div>
+                        <button type="button" className="transparent" onClick={onHide}>
+                            <Close className="icon-dim-24" />
+                        </button>
+                    </div>
+                    <div className="fs-14">Deployed on Prod at Thu, 16 Jan 2020, 08:19 pm by nishant@devtron.ai</div>
                 </div>
                 {material?.map(({ author, branch, message, modifiedTime, revision, url }, idx) => (
                     <div className="app-summary__source-row" key={idx}>
@@ -649,7 +649,6 @@ function CommitInfo({ onHide, material }) {
                         </div>
                     </div>
                 ))}
-                <div className=" fa fa-close" onClick={onHide}></div>
             </div>
         </section>
     );
@@ -813,12 +812,12 @@ export const NodeSelectors: React.FC<NodeSelectors> = ({
     if (!containers) {
         containers = []
     }
-    if (!initContainers ) {
+    if (!initContainers) {
         initContainers = []
     }
 
-    if(params.tab === NodeDetailTabs.TERMINAL) initContainers = [];
-    
+    if (params.tab === NodeDetailTabs.TERMINAL) initContainers = [];
+
     let allContainers = containers.concat(initContainers);
 
     function getPodNameSuffix(nodeName: string) {
@@ -1244,8 +1243,8 @@ const MaterialCard: React.FC<{
                             ) : hiberbateConfirmationModal === 'hibernate' ? (
                                 `Hibernate App`
                             ) : (
-                                'Restore App'
-                            )}
+                                        'Restore App'
+                                    )}
                         </button>
                     </ConfirmationDialog.ButtonGroup>
                 </ConfirmationDialog>

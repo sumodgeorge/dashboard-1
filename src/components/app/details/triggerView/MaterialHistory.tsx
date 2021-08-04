@@ -1,14 +1,5 @@
 import React, { Component } from 'react';
-import { ReactComponent as Check } from '../../../../assets/icons/ic-check-circle.svg';
-import { ReactComponent as Arrow } from '../../../../assets/icons/misc/arrow-chevron-down-black.svg';
-import { ReactComponent as Commit } from '../../../../assets/icons/ic-commit.svg';
-import { ReactComponent as PersonIcon } from '../../../../assets/icons/ic-person.svg';
-import { ReactComponent as CalendarIcon } from '../../../../assets/icons/ic-calendar.svg';
-import { ReactComponent as MessageIcon } from '../../../../assets/icons/ic-message.svg';
-import { ReactComponent as BranchIcon } from '../../../../assets/icons/ic-branch.svg';
-import { ReactComponent as BranchMain } from '../../../../assets/icons/ic-branch-main.svg';
-import { string } from 'prop-types';
-import TriggerViewMergedCI from './TriggerViewSelectCiMaterial';
+import GitCommitInfoGeneric from '../../../common/GitCommitInfoGeneric';
 
 export interface Data {
     author: string;
@@ -21,7 +12,7 @@ export interface Data {
     targetCheckout: string;
 }
 
-export interface WebHookData {
+export interface WebhookData {
     id: number;
     eventActionType: string;
     data: Data
@@ -36,7 +27,7 @@ export interface CommitHistory {
     message: string;
     isSelected: boolean;
     showChanges: boolean;
-    webhookData: WebHookData
+    webhookData: WebhookData
 }
 
 export interface CIMaterialType {
@@ -66,18 +57,6 @@ export interface MaterialHistoryProps {
 
 export class MaterialHistory extends Component<MaterialHistoryProps> {
 
-    renderShowChangeButton(history) {
-        if (history.changes.length) {
-            return <button type="button" className="material-history__changes-btn " onClick={(event) => {
-                event.stopPropagation();
-                this.props.toggleChanges(this.props.material.id.toString(), history.commit)
-            }}>
-                {history.showChanges ? "Hide Changes" : "Show Changes"}
-                <Arrow style={{ 'transform': `${history.showChanges ? 'rotate(-180deg)' : ''}` }} />
-            </button>
-        }
-    }
-
     render() {
         return <>
             {this.props.material.history.map((history) => {
@@ -90,36 +69,15 @@ export class MaterialHistory extends Component<MaterialHistoryProps> {
                     if (this.props.selectCommit)
                         this.props.selectCommit(this.props.material.id.toString(), history.commit);
                 }}>
+                    <GitCommitInfoGeneric
+                        materialUrl={""}
+                        showMaterialInfo={false}
+                        commitInfo={history}
+                        materialSourceType={this.props.material.type}
+                        selectedCommitInfo={this.props.selectCommit}
+                        materialSourceValue={this.props.material.value}
 
-                    <div>
-                        {history.webhookData && history.webhookData.eventActionType == "merged" ?
-                            <TriggerViewMergedCI
-                                history={history}
-                                selectCommit={this.props.selectCommit}
-                                toggleChanges={this.props.toggleChanges}
-                                material={this.props.material}
-                            /> :
-                            <>
-                                <div className="ml-16 mr-16 flex left" style={{ justifyContent: "space-between" }}>
-                                    <a href={history.commitURL} target="_blank" rel="noopener" className="commit-hash" onClick={e => e.stopPropagation()}>
-                                        <Commit className="commit-hash__icon" />{history.commit}
-                                    </a>
-                                    {this.props.selectCommit ? <div className="material-history__select-text" >
-                                        {history.isSelected ? <Check className="align-right" /> : "Select"}
-                                    </div> : null}
-                                </div>
-                                <div className="material-history__text">Author: {history.author}</div>
-                                <div className="material-history__text">Date: {history.date}</div>
-                                <div className="material-history__text material-history-text--padded">{history.message}</div>
-                            </>}
-                        {history.showChanges ? <div className="material-history__all-changes pl-16">
-                            {history.changes.map((change, index) => {
-                                return <div className="pl-1" key={index}>{change}</div>
-                            })}
-                        </div> : null}
-                    </div>
-
-                    {this.renderShowChangeButton(history)}
+                    />
                 </div>
             })}
         </>

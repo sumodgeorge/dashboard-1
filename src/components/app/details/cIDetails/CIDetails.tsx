@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { getCIPipelines, cancelCiTrigger, getCIHistoricalStatus, getTriggerHistory, getArtifact } from '../../service';
-import { Progressing, useScrollable, showError, Select, useAsync, useInterval, createGitCommitUrl, mapByKey, useIntersection, copyToClipboard, asyncWrap, ConfirmationDialog, useKeyDown, not, GitMaterialInfo, GitCommitDetailCard, ConditionalWrap, GitCommitInfo } from '../../../common';
+import { Progressing, useScrollable, showError, Select, useAsync, useInterval, createGitCommitUrl, mapByKey, useIntersection, copyToClipboard, asyncWrap, ConfirmationDialog, useKeyDown, not, GitMaterialInfo, GitCommitDetailCard, ConditionalWrap } from '../../../common';
 import { Host, Routes, URLS, SourceTypeMap } from '../../../../config';
 import { toast } from 'react-toastify';
 import { NavLink, Switch, Route, Redirect, Link } from 'react-router-dom'
@@ -34,7 +34,8 @@ import TippyHeadless from '@tippyjs/react/headless'
 import Tippy from '@tippyjs/react';
 import ReactGA from 'react-ga';
 import './ciDetails.scss';
-import {CiPipelineSourceConfig} from '../../../ciPipeline/CiPipelineSourceConfig';
+import { CiPipelineSourceConfig } from '../../../ciPipeline/CiPipelineSourceConfig';
+import GitCommitInfoGeneric from '../../../common/GitCommitInfoGeneric';
 
 const terminalStatus = new Set(['succeeded', 'failed', 'error', 'cancelled', 'nottriggered', 'notbuilt']);
 let statusSet = new Set(["starting", "running", "pending"]);
@@ -238,6 +239,7 @@ export const BuildCard: React.FC<{ triggerDetails: History }> = React.memo(({ tr
     )
 })
 
+
 export const BuildCardPopup: React.FC<{ triggerDetails: History }> = ({ triggerDetails }) => {
     return (
         <div className="build-card-popup p-16 br-4 flex column left" style={{ width: '400px', background: 'white' }}>
@@ -251,24 +253,23 @@ export const BuildCardPopup: React.FC<{ triggerDetails: History }> = ({ triggerD
                 {triggerDetails?.ciMaterials?.map(ciMaterial => {
                     const gitDetail: GitTriggers = triggerDetails.gitTriggers[ciMaterial.id]
                     return <div className="mt-22" key={ciMaterial.id} style={{ display: 'grid', gridTemplateColumns: '20px 1fr', gridColumnGap: '8px' }}>
-                        <div className="git-logo">
-
-                        </div>
-                        <div className="flex left column">
-                            {
-                                ciMaterial.type != SourceTypeMap.WEBHOOK &&
-                                <>
+                        {
+                            ciMaterial.type != SourceTypeMap.WEBHOOK &&
+                            <>
+                                <div className="git-logo"> </div>
+                                <div className="flex left column">
                                     <a href={createGitCommitUrl(ciMaterial?.url, gitDetail?.Commit)} target="_blank" rel="noopener noreferer" className="fs-12 fw-6 cn-9 pointer">/{ciMaterial.value}</a>
                                     <p className="fs-12 cn-7">{gitDetail?.Message}</p>
-                                </>
-                            }
-                            {
-                                ciMaterial.type == SourceTypeMap.WEBHOOK &&
-                                <>
-                                    <CiPipelineSourceConfig sourceType={ciMaterial.type} sourceValue={ciMaterial.value}></CiPipelineSourceConfig>
-                                </>
-                            }
-                        </div>
+                                </div>
+                            </>
+                        }
+                        {
+                            ciMaterial.type == SourceTypeMap.WEBHOOK &&
+                            <div className="flex left column">
+                                <CiPipelineSourceConfig sourceType={ciMaterial.type} sourceValue={ciMaterial.value} showTooltip={false}></CiPipelineSourceConfig>
+                            </div>
+                        }
+
                     </div>
                 })}
             </div>
@@ -775,64 +776,15 @@ export const Artifacts: React.FC<{ triggerDetails: History, getArtifactPromise?:
     )
 }
 
-// const MaterialHistory: React.FC<{ gitTrigger: GitTriggers, ciMaterial: CiMaterial }> = ({ gitTrigger, ciMaterial }) => {
-//     return (
-//         <div
-//             key={gitTrigger?.Commit}
-//             className="pt-0 bcn-0 br-4 mb-16"
-//             style={{ width: 'min( 100%, 800px )', border: '1px solid var(--N200)' }}
-//         >
-//             <div className="flex left ml-16 mr-16 " style={{ height: '62px' }}>
-//                 <RepoBranch repoUrl={ciMaterial.url} branch={ciMaterial.value} />
-//             </div>
-//             <GitCommitDetailCard ciMaterial={ciMaterial} gitTrigger={gitTrigger} />
-//         </div>
-//     );
-// }
-
 const MaterialHistory: React.FC<{ gitTrigger: GitTriggers, ciMaterial: CiMaterial }> = ({ gitTrigger, ciMaterial }) => {
-    // console.log(gitTrigger.WebhookData.Data["source branch name"])
-    // console.log(gitTrigger)
-
-    return <div key={gitTrigger?.Commit} style={{ width: 'min( 100%, 800px )' }}>
-        {(ciMaterial.type === SourceTypeMap.WEBHOOK && gitTrigger.WebhookData.EventActionType === "merged") ?
-            <GitCommitInfo
-                email={gitTrigger.WebhookData.Data.author}
-                date={gitTrigger.WebhookData.Data.date}
-                message={gitTrigger.Message} >
-                    <div className="git-commit-info__grid flex left mb-12">
-                        <Git className="icon-dim-24" />
-                        <div>
-                            <p className="fs-12 fw-6 m-0 cn-9">/{gitTrigger.WebhookData.Data.header}</p>
-                            <a href={`${gitTrigger.WebhookData.Data["git url"]}`}target="_blank" rel="noreferrer noopener" className="fs-12 fw-5 m-0 cb-5">View git url</a>
-                        </div>
-                    </div>
-                <div className="git-commit-info__grid mono mb-12">
-                    <div><BranchMain className="" /></div>
-                    <div className="w-100">
-                        <p className="flex left mb-8">
-                            <GitCommitInfo.Branch branch={gitTrigger.WebhookData.Data["source branch name"]} />
-                            <span className="mr-8" />
-                            <GitCommitInfo.Commit commit={gitTrigger.WebhookData.Data["source checkout"]} />
-                        </p>
-                        <p className="flex left mb-0">
-                            <GitCommitInfo.Branch branch={gitTrigger.WebhookData.Data["target branch name"]} />
-                            <span className="mr-8" />
-                            <GitCommitInfo.Commit commit={gitTrigger.WebhookData.Data["target checkout"]} />
-                        </p>
-                    </div>
-                </div>
-            </GitCommitInfo> :
-            <div
-                key={gitTrigger?.Commit}
-                className="pt-0 bcn-0 br-4 mb-16"
-                style={{ width: 'min( 100%, 800px )', border: '1px solid var(--N200)' }}
-            >
-                <div className="flex left ml-16 mr-16 " style={{ height: '62px' }}>
-                    <GitMaterialInfo repoUrl={ciMaterial.url} materialType={ciMaterial.type} materialValue={ciMaterial.value} />
-                </div>
-                <GitCommitDetailCard ciMaterial={ciMaterial} gitTrigger={gitTrigger} />
-            </div>}
+    return <div key={gitTrigger?.Commit} className="bcn-0 pt-12 br-4 en-2 bw-1" style={{ width: 'min( 100%, 800px )' }}>
+        <GitCommitInfoGeneric
+            materialUrl={ciMaterial.url}
+            showMaterialInfo={false}
+            commitInfo={gitTrigger}
+            materialSourceType={ciMaterial.type}
+            selectedCommitInfo={""}
+            materialSourceValue={ciMaterial.value} />
     </div>
 }
 

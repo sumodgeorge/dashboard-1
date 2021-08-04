@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { CDMaterialProps } from './types';
+import { GitTriggers } from '../cIDetails/types';
 import close from '../../../../assets/icons/ic-close.svg';
 import arrow from '../../../../assets/icons/misc/arrow-chevron-down-black.svg';
 import { ReactComponent as Check } from '../../../../assets/icons/ic-check-circle.svg';
@@ -11,19 +12,31 @@ import { VisibleModal, ButtonWithLoader, ScanVulnerabilitiesTable, Progressing }
 import { EmptyStateCdMaterial } from './EmptyStateCdMaterial';
 import { getCDModalHeader, CDButtonLabelMap } from './config';
 import { CDModalTab } from '../../service';
+import GitCommitInfoGeneric from '../../../common/GitCommitInfoGeneric';
 
 export class CDMaterial extends Component<CDMaterialProps> {
 
   renderGitMaterialInfo(matInfo) {
     return <>
       {matInfo.map(mat => {
-        return <div key={mat.revision} className="material-history__source-info">
-          <a rel="noreferrer noopener" target="_blank" href={mat.commitLink} className="commit-hash commit-hash--cd" >
-            <img src={commit} alt="commit" className="commit-hash__icon" />{mat.revision}
-          </a>
-          <div>{mat.modifiedTime}</div>
-          <div> {mat.author}</div>
-          <div className="material-history__commit-msg">{mat.message}</div>
+        let _gitCommit: GitTriggers = {
+          Commit: mat.revision,
+          Author: mat.author,
+          Date: mat.modifiedTime,
+          Message: mat.message,
+          WebhookData: JSON.parse(mat.webhookData),
+          Changes: []
+        }
+
+        return <div className="bcn-0 pt-12">
+          < GitCommitInfoGeneric
+                materialUrl={mat.url}
+                showMaterialInfo={true}
+                commitInfo={_gitCommit}
+                materialSourceType={""}
+                selectedCommitInfo={""}
+                materialSourceValue={""}
+          />
         </div>
       })}
     </>
