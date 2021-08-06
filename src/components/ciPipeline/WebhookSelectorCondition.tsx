@@ -13,7 +13,7 @@ export function WebhookSelectorCondition({ conditionIndex, masterSelectorList, s
                     IndicatorSeparator: null,
                     ClearIndicator: null
                 }}
-                isSearchable={false}
+                isSearchable={true}
                 tabIndex="1"
                 placeholder="Select Key"
                 styles={{
@@ -27,7 +27,7 @@ export function WebhookSelectorCondition({ conditionIndex, masterSelectorList, s
                 }
                 onChange={(selectedSelector) => onSelectorChange(conditionIndex, selectedSelector.value)}
             />
-            <input type="text" className="form__input bcn-1" placeholder="Enter regex"
+            <input type="text" className="form__input" placeholder="Enter regex"
                    onChange={(event) => { onSelectorValueChange(conditionIndex, event.target.value) }}
                    value={selectorCondition.value}
             />
