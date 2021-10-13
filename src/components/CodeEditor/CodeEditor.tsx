@@ -3,6 +3,7 @@ import MonacoEditor, { MonacoDiffEditor } from 'react-monaco-editor';
 import { useJsonYaml, Select, RadioGroup, Progressing, useWindowSize, copyToClipboard } from '../common'
 import { ReactComponent as ClipboardIcon } from '../../assets/icons/ic-copy.svg';
 import { ReactComponent as Info } from '../../assets/icons/ic-info-filled.svg';
+import { ReactComponent as ErrorIcon } from '../../assets/icons/ic-error-exclamation.svg';
 import YAML from 'yaml'
 import './codeEditor.scss';
 import ReactGA from 'react-ga';
@@ -17,6 +18,7 @@ interface CodeEditorInterface {
     lineDecorationsWidth?: number;
     responseType?: string;
     onChange?: (string) => void;
+    ValidationError?: any;
     children?: any;
     defaultValue?: string;
     mode?: 'json' | 'yaml' | 'shell';
@@ -79,7 +81,7 @@ interface CodeEditorState {
     height: string;
     noParsing: boolean;
 }
-const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.memo(function Editor({ value, mode = "json", noParsing = false, defaultValue = "", children, tabSize = 2, lineDecorationsWidth = 0, height = 450, inline = false, shebang = "", minHeight, maxHeight, onChange, readOnly, diffView, loading, theme=""}) {
+const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.memo(function Editor({ value, mode = "json", noParsing = false, defaultValue = "", children, tabSize = 2, lineDecorationsWidth = 0, height = 450, inline = false, shebang = "", minHeight, maxHeight, onChange, ValidationError, readOnly, diffView, loading, theme = "" }) {
     const editorRef = useRef(null)
     const monacoRef = useRef(null)
     const { width, height: windowHeight } = useWindowSize()
@@ -111,7 +113,7 @@ const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.
     const [state, dispatch] = useReducer(memoisedReducer, initialState)
     const [nativeObject, json, yaml, error] = useJsonYaml(state.code, tabSize, state.mode, !state.noParsing)
     const [, originalJson, originlaYaml, originalError] = useJsonYaml(defaultValue, tabSize, state.mode, !state.noParsing)
-   
+
     function editorDidMount(editor, monaco) {
         editorRef.current = editor
         monacoRef.current = monaco
@@ -230,6 +232,21 @@ const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.
                 :
                 <>
                     {shebang && <div className="shebang">{shebang}</div>}
+                    {ValidationError &&
+                        ValidationError.map((item, index) => {
+                            const value = item.split(':');
+                            return (<div key={index} className="p-8 bcr-1 en-2 bw-0" style={{ borderBottomWidth: 1 }}>
+                                <div className="flex left ">
+                                    <ErrorIcon className="icon-dim-16 ml-8" />
+                                    <div className="ml-8">
+                                        <span className="fs-12 cr-7 error-msg">ERROR at : {value[0]}</span>
+                                    </div>
+                                </div>
+                                <div className="fs-12 cr-7 ml-32 error-msg">Message : {value[1]}</div>
+                            </div>)
+                        }
+                        )
+                    }
                     {state.diffMode ?
                         <MonacoDiffEditor
                             original={noParsing ? defaultValue : state.mode === 'json' ? originalJson : originlaYaml}

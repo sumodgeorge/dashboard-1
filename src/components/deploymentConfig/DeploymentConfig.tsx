@@ -53,6 +53,7 @@ function DeploymentConfigForm({ respondOnSuccess }) {
     const [obj, json, yaml, error] = useJsonYaml(tempFormData, 4, 'yaml', true);
     const [chartConfigLoading, setChartConfigLoading] = useState(null)
     const [showConfirmation, toggleConfirmation] = useState(false)
+    const [ValidationError, setValidationError] = useState([])
 
     useEffect(() => {
         initialise()
@@ -160,6 +161,11 @@ function DeploymentConfigForm({ respondOnSuccess }) {
         }
         catch (err) {
             showError(err)
+            if(err.code == 400){
+                let error = err.errors[0];
+                var array = error.userMessage.split(',')
+                setValidationError(array)
+            }
         }
         finally {
             setLoading(false)
@@ -200,6 +206,7 @@ function DeploymentConfigForm({ respondOnSuccess }) {
                 <div className="form__row form__row--code-editor-container">
                     <CodeEditor
                         value={tempFormData}
+                        ValidationError={ValidationError}
                         onChange={resp => { setTempFormData(resp) }}
                         mode="yaml"
                         loading={chartConfigLoading}>
