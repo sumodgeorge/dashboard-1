@@ -224,6 +224,7 @@ const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.
             vertical: inline ? 'hidden' : 'auto'
         }
     };
+    console.log(ValidationError);
     return (
         <CodeEditorContext.Provider value={{ dispatch, state, handleLanguageChange, error, defaultValue, height }}>
             {children}
