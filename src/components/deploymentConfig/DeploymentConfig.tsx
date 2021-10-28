@@ -10,6 +10,7 @@ import warningIcon from '../../assets/icons/ic-info-filled.svg'
 import ReactSelect from 'react-select';
 import { DOCUMENTATION } from '../../config';
 import './deploymentConfig.scss';
+import { ServerErrors } from '../../modals/commonTypes';
 
 export function OptApplicationMetrics({ currentVersion, onChange, opted, focus = false, loading, className = "", disabled = false }) {
     let isChartVersionSupported = isVersionLessThanOrEqualToTarget(currentVersion, [3, 7, 0]);
@@ -162,9 +163,13 @@ function DeploymentConfigForm({ respondOnSuccess }) {
         catch (err) {
             showError(err)
             if(err.code == 400){
-                let error = err.errors[0];
-                var array = error.userMessage.split(',')
-                setValidationError(array)
+                let validationError = []
+                if (err instanceof ServerErrors && Array.isArray(err.errors)) {
+                    err.errors.map(({ userMessage, internalMessage }) => {
+                        validationError.push(userMessage)
+                    });
+                }
+                setValidationError(validationError)
             }
         }
         finally {
