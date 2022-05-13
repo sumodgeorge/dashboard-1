@@ -6,7 +6,8 @@
 }
 
 .historical-diff__container {
-    min-width: 280px;
+    display: grid;
+    grid-template-columns: 280px auto;
     height: calc(100vh - 160px);
 }
 
@@ -51,4 +52,23 @@
 
 .compare-history__border-left {
     border-left: 1px solid var(--N100);
+}
+
+.configuration-link {
+    &.active {
+        background: var(--B100);
+        color: var(--N900);
+        font-weight: 600;
+    }
+}
+.historical-name:hover {
+    color: var(--N900) !important;
+}
+
+.code-editor-green-diff {
+    background: #eaf1dd;
+}
+
+.code-editor-red-diff {
+    background: #ffd4d1;
 }
