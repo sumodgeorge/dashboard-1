@@ -1630,6 +1630,10 @@ button.anchor {
     width: 250px;
 }
 
+.w-280 {
+    width: 280px;
+}
+
 .w-600 {
     width: 600px;
 }
@@ -1691,6 +1695,8 @@ button.anchor {
 
 .lh-28 {
     line-height: 28px;
+.mh-28 {
+    min-height: 28px;
 }
 
 .pl-16 {
