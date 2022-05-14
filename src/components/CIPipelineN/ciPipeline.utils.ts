@@ -36,6 +36,8 @@ export const baseSelectStyles = {
         fontSize: '12px',
         cursor: state.isDisabled ? 'not-allowed' : 'normal',
         pointerEvents: 'all',
+        width: '100px',
+        whiteSpace: 'nowrap',
     }),
     indicatorsContainer: (base, state) => ({
         ...base,
@@ -68,6 +70,8 @@ export const pluginSelectStyle = {
         fontSize: '12px',
         borderTopLeftRadius: '4px',
         borderBottomLeftRadius: '4px',
+        width: '100px',
+        whiteSpace: 'nowrap',
     }),
     indicatorsContainer: (base, state) => ({
         ...base,
@@ -100,7 +104,7 @@ export const yamlEditorSelectStyle = {
     }),
 }
 
-export const selectWithDefaultBG = {
+export const selectVariableStyle = {
     ...baseSelectStyles,
     control: (base, state) => ({
         ...base,
@@ -110,14 +114,36 @@ export const selectWithDefaultBG = {
         borderRadius: 'none',
         height: '32px',
         fontSize: '12px',
+        maxWidth: '200px',
         width: 'max-content',
     }),
     valueContainer: (base, state) => ({
         ...base,
         display: 'flex',
+        height: '32px',
+        lineHeight: '26px',
     }),
     indicatorsContainer: (base, state) => ({
         ...base,
+    }),
+}
+
+export const selectOperatorStyle = {
+    ...selectVariableStyle,
+    control: (base, state) => ({
+        ...base,
+        border: 'none',
+        boxShadow: 'none',
+        minHeight: 'auto',
+        borderRadius: 'none',
+        height: '32px',
+        fontSize: '12px',
+        width: '50px',
+    }),
+    menu: (base, state) => ({
+        ...base,
+        width: '200px',
+        marginTop: '0',
     }),
 }
 
@@ -170,6 +196,8 @@ export const containerImageSelectStyles = {
         borderTopLeftRadius: '4px',
         borderBottomLeftRadius: '4px',
         fontSize: '12px',
+        width: '100px',
+        whiteSpace: 'nowrap',
     }),
     indicatorsContainer: (base, state) => ({
         ...base,

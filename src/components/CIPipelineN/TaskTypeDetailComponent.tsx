@@ -25,6 +25,7 @@ import { getCustomOptionSelectionStyle } from '../v2/common/ReactSelect.utils'
 import { OptionType } from '../app/types'
 import { containerImageSelectStyles } from './ciPipeline.utils'
 import { ValidationRules } from '../ciPipeline/validationRules'
+import { ReactComponent as Info } from '../../assets/icons/ic-info-filled.svg'
 
 export function TaskTypeDetailComponent() {
     const {
@@ -34,7 +35,7 @@ export function TaskTypeDetailComponent() {
         activeStageName,
         formDataErrorObj,
         setFormDataErrorObj,
-        validateTask
+        validateTask,
     }: {
         selectedTaskIndex: number
         formData: FormType
@@ -92,7 +93,7 @@ export function TaskTypeDetailComponent() {
                 !formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.mountCodeToContainerPath
             ) {
                 formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.mountCodeToContainerPath =
-                    'sourcecode'
+                    '/sourcecode'
             }
         } else {
             _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail[e.target.name] = false
@@ -125,6 +126,12 @@ export function TaskTypeDetailComponent() {
             return (
                 <>
                     <CustomScript handleScriptChange={(e) => handleCustomChange(e, 'script')} />
+                    <div className="w-100 bcn-1 pt-7 br-8 flexbox h-32 pl-4 cn-9 fs-12">
+                        <Info className="path-info mt-2 mb-2 mr-8 ml-14 icon-dim-16" />
+                        <span>
+                            Your source code will be available at: <span className="fw-6">/devtroncd</span>
+                        </span>
+                    </div>
                     <hr />
                     <OutputDirectoryPath />
                 </>
@@ -161,7 +168,7 @@ export function TaskTypeDetailComponent() {
             _formData[activeStageName].steps[selectedTaskIndex],
             _formErrorObject[activeStageName].steps[selectedTaskIndex],
         )
-        setFormDataErrorObj(_formErrorObject)   
+        setFormDataErrorObj(_formErrorObject)
         setFormData(_formData)
     }
 
@@ -178,10 +185,8 @@ export function TaskTypeDetailComponent() {
     }
 
     const handleKeyDown = (event) => {
-        switch (event.key) {
-            case 'Enter':
-            case 'Tab':
-                event.target.blur()
+        if (event.key === 'Enter' || event.key === 'Tab') {
+            event.target.blur()
         }
     }
 
@@ -208,7 +213,7 @@ export function TaskTypeDetailComponent() {
                 '"#!/bin/sh \\nset -eo pipefail \\n#set -v  ## uncomment this to debug the script \\n"'
             ) {
                 const _formData = { ...formData }
-                _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.script = ''  //default value for container image            
+                _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.script = '' //default value for container image
                 setFormData(_formData)
             }
             return (
@@ -256,6 +261,10 @@ export function TaskTypeDetailComponent() {
                                     <span>{errorObj?.containerImagePath.message}</span>
                                 </span>
                             )}
+                            <div className="w-100 bcb-1 pt-6 br-4 flexbox h-32 cn-9 fs-12 mt-8">
+                                <Info className="container-image-info mt-2 mb-2 mr-8 ml-14 icon-dim-16" />
+                                <span>Devtron only supports container image which include /bin/sh executable</span>
+                            </div>
                         </div>
                     </div>
                     <div className="row-container mb-12 fs-13 fw-6">
@@ -295,7 +304,7 @@ export function TaskTypeDetailComponent() {
                                     <input
                                         className="w-100 br-4 en-2 bw-1 pl-10 pr-10 pt-5 pb-5"
                                         autoComplete="off"
-                                        placeholder="Eg. directory/filename"
+                                        placeholder="Eg. /directory/filename"
                                         type="text"
                                         name="storeScriptAt"
                                         onChange={(e) => handleCustomChange(e, 'storeScriptAt')}
@@ -317,7 +326,7 @@ export function TaskTypeDetailComponent() {
                     )}
                     <div className="row-container mb-12">
                         <TaskFieldTippyDescription
-                            taskField={TaskFieldLabel.COMMAND}
+                            taskField={'Command'}
                             contentDescription={TaskFieldDescription.COMMAND}
                         />
                         <input
@@ -335,10 +344,7 @@ export function TaskTypeDetailComponent() {
                         />
                     </div>
                     <div className="row-container mb-12">
-                        <TaskFieldTippyDescription
-                            taskField={TaskFieldLabel.ARGS}
-                            contentDescription={TaskFieldDescription.ARGS}
-                        />
+                        <TaskFieldTippyDescription taskField={'Args'} contentDescription={TaskFieldDescription.ARGS} />
                         <input
                             style={{ width: '80% !important' }}
                             className="w-100 br-4 en-2 bw-1 pl-10 pr-10 pt-5 pb-5"

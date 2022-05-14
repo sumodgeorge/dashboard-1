@@ -75,7 +75,6 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
             format: formatOptions[0].label,
             description: '',
             defaultValue: '',
-            refVariableUsed: false,
             variableType: RefVariableType.NEW,
             refVariableStepIndex: 0,
             refVariableName: '',
@@ -86,6 +85,12 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
         _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail[VariableFieldType[type]].unshift(
             newVariable,
         )
+        const _formDataErrorObj = { ...formDataErrorObj }
+        _formDataErrorObj[activeStageName].steps[selectedTaskIndex].inlineStepDetail[VariableFieldType[type]].unshift({
+            isValid: true,
+            message: '',
+        })
+        setFormDataErrorObj(_formDataErrorObj)
         setFormData(_formData)
     }
 
@@ -94,8 +99,8 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
         _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail[VariableFieldType[type]][index][
             e.target.name
         ] = e.target.value
-        if(e.target.name === 'name'){
-        const _formErrorObject = { ...formDataErrorObj }
+        if (e.target.name === 'name') {
+            const _formErrorObject = { ...formDataErrorObj }
             validateTask(
                 _formData[activeStageName].steps[selectedTaskIndex],
                 _formErrorObject[activeStageName].steps[selectedTaskIndex],
@@ -123,7 +128,6 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
             _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail[VariableFieldType[type]].length === 0
         ) {
             let conditionDetails = _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.conditionDetails
-            let isDeletedSomeCondition = false
             for (let i = 0; i < conditionDetails?.length; i++) {
                 if (
                     (type === PluginVariableType.OUTPUT &&
@@ -135,19 +139,16 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
                 ) {
                     conditionDetails.splice(i, 1)
                     i--
-                    isDeletedSomeCondition = true
                 }
             }
             _formData[activeStageName].steps[selectedTaskIndex].inlineStepDetail.conditionDetails = conditionDetails
-            if (isDeletedSomeCondition) {
-                const _formDataErrorObj = { ...formDataErrorObj }
-                validateTask(
-                    formData[activeStageName].steps[index || selectedTaskIndex],
-                    _formDataErrorObj[activeStageName].steps[index || selectedTaskIndex],
-                )
-                setFormDataErrorObj(_formDataErrorObj)
-            }
         }
+        const _formDataErrorObj = { ...formDataErrorObj }
+        validateTask(
+            formData[activeStageName].steps[selectedTaskIndex],
+            _formDataErrorObj[activeStageName].steps[selectedTaskIndex],
+        )
+        setFormDataErrorObj(_formDataErrorObj)
         setFormData(_formData)
     }
 
@@ -168,34 +169,41 @@ function CustomInputOutputVariables({ type }: { type: PluginVariableType }) {
     return (
         <>
             <div className="row-container mb-4 mt-4">
-                <Tippy
-                    className="default-tt"
-                    arrow={false}
-                    content={
-                        <span style={{ display: 'block', width: '220px' }}>
-                            {type === PluginVariableType.INPUT
-                                ? TaskFieldDescription.INPUT
-                                : TaskFieldDescription.OUTPUT}
-                        </span>
-                    }
-                >
-                    <div className={`tp-4 fs-13 fw-6 text-capitalize mr-8 `} style={{ position: 'relative' }}>
+                <div className={`tp-4 fs-13 fw-6 mr-8 `} style={{ position: 'relative' }}>
+                    <Tippy
+                        className="default-tt"
+                        arrow={false}
+                        content={
+                            <span style={{ display: 'block', width: '220px' }}>
+                                {type === PluginVariableType.INPUT
+                                    ? TaskFieldDescription.INPUT
+                                    : TaskFieldDescription.OUTPUT}
+                            </span>
+                        }
+                    >
                         <span className="text-underline-dashed lh-32">{type} variables </span>
-                        {isDateFormat && (
-                            <div
-                                className="bcb-1 br-4 fw-4 pl-12 pr-12 pt-8 pb-8"
-                                style={{ width: '180px', marginRight: '60px', position: 'absolute' }}
-                            >
-                                <div className="format-grid">
-                                    <Info className="mr-4 icon-dim-16" />
-                                    <span className="cb-5 mb-2 lh-1-33">
-                                        Standardized date formats <span className="cn-9">identified by Devtron</span>{' '}
-                                    </span>
-                                </div>
+                    </Tippy>
+                    {isDateFormat && (
+                        <div
+                            className="bcb-1 br-4 fw-4 pl-12 pr-12 pt-8 pb-8"
+                            style={{ width: '180px', marginRight: '60px', position: 'absolute' }}
+                        >
+                            <div className="format-grid">
+                                <Info className="mr-4 icon-dim-16" />
+                                <span className="cb-5 mb-2 lh-1-33">
+                                    <a
+                                        className="no-decor"
+                                        href="https://github.com/Knetic/govaluate/blob/0580e9b47a69125afa0e4ebd1cf93c49eb5a43ec/parsing.go#L258"
+                                        target="_blank"
+                                    >
+                                        Standardized date formats
+                                    </a>{' '}
+                                    <span className="cn-9">identified by Devtron</span>{' '}
+                                </span>
                             </div>
-                        )}
-                    </div>
-                </Tippy>
+                        </div>
+                    )}
+                </div>
 
                 <div className="pointer cb-5 fw-6 fs-13 flexbox content-fit lh-32" onClick={addVariable}>
                     <Add className="add-icon mt-6" />

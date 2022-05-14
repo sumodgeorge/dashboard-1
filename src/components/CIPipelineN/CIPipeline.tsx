@@ -8,6 +8,7 @@ import {
     getGlobalVariable,
     getInitData,
     getInitDataWithCIPipeline,
+    getPluginsData,
     saveCIPipeline,
 } from '../ciPipeline/ciPipeline.service'
 import { toast } from 'react-toastify'
@@ -16,7 +17,9 @@ import { ValidationRules } from '../ciPipeline/validationRules'
 import {
     CIPipelineDataType,
     CIPipelineType,
+    ConditionType,
     FormType,
+    PluginDetailType,
     PluginType,
     RefVariableStageType,
     RefVariableType,
@@ -63,6 +66,8 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
         preBuildStage: Map<string, VariableType>[]
         postBuildStage: Map<string, VariableType>[]
     }>({ preBuildStage: [], postBuildStage: [] })
+    const [presetPlugins, setPresetPlugins] = useState<PluginDetailType[]>([])
+    const [sharedPlugins, setSharedPlugins] = useState<PluginDetailType[]>([])
     const [formData, setFormData] = useState<FormType>({
         name: '',
         args: [{ key: '', value: '' }],
@@ -172,6 +177,31 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
             })
     }, [])
 
+    useEffect(() => {
+        getPluginsData(Number(appId))
+            .then((response) => {
+                processPluginList(response?.result || [])
+            })
+            .catch((error: ServerErrors) => {
+                showError(error)
+            })
+    }, [])
+
+    function processPluginList(pluginList: PluginDetailType[]): void {
+        const _presetPlugin = []
+        const _sharedPlugin = []
+        const pluginListLength = pluginList.length
+        for (let i = 0; i < pluginListLength; i++) {
+            if (pluginList[i].type === 'PRESET') {
+                _presetPlugin.push(pluginList[i])
+            } else {
+                _sharedPlugin.push(pluginList[i])
+            }
+        }
+        setPresetPlugins(_presetPlugin)
+        setSharedPlugins(_sharedPlugin)
+    }
+
     const deletePipeline = (): void => {
         deleteCIPipeline(
             formData,
@@ -201,17 +231,14 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
     }
 
     const renderDeleteCIModal = () => {
-        if (ciPipelineId && showDeleteModal) {
-            return (
-                <DeleteDialog
-                    title={`Delete '${formData.name}' ?`}
-                    description={`Are you sure you want to delete this CI Pipeline from '${appName}' ?`}
-                    closeDelete={closeCIDeleteModal}
-                    delete={deletePipeline}
-                />
-            )
-        }
-        return null
+        return (
+            <DeleteDialog
+                title={`Delete '${formData.name}' ?`}
+                description={`Are you sure you want to delete this CI Pipeline from '${appName}' ?`}
+                closeDelete={closeCIDeleteModal}
+                delete={deletePipeline}
+            />
+        )
     }
 
     const renderSecondaryButtton = () => {
@@ -274,19 +301,25 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                     if (!taskData.inlineStepDetail['mountDirectoryFromHost']) {
                         taskData.inlineStepDetail['mountPathMap'] = null
                     }
+                    taskData.inlineStepDetail.outputVariables = null
+                    let conditionDetails = taskData.inlineStepDetail.conditionDetails
+                    for (let i = 0; i < conditionDetails?.length; i++) {
+                        if (
+                            conditionDetails[i].conditionType === ConditionType.PASS ||
+                            conditionDetails[i].conditionType === ConditionType.FAIL
+                        ) {
+                            conditionDetails.splice(i, 1)
+                            i--
+                        }
+                    }
+                    taskData.inlineStepDetail.conditionDetails = conditionDetails
                 }
             }
             return taskData.name
         })
-        const set = new Set()
-        for (let i = 0; i < stageNameList.length; i++) {
-            if (set.has(stageNameList[i])) {
-                return false
-            } else {
-                set.add(stageNameList[i])
-            }
-        }
-        return true
+
+        // Below code is to check if all the task name from pre-stage and post-stage is unique
+        return stageNameList.length === new Set(stageNameList).size
     }
 
     const savePipeline = () => {
@@ -346,28 +379,28 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
             taskErrorobj.isValid = taskErrorobj.name.isValid
 
             if (taskData.stepType) {
+                const inputVarMap: Map<string, boolean> = new Map()
+                const outputVarMap: Map<string, boolean> = new Map()
                 const currentStepTypeVariable =
                     taskData.stepType === PluginType.INLINE ? 'inlineStepDetail' : 'pluginRefStepDetail'
                 taskErrorobj[currentStepTypeVariable].inputVariables = []
                 taskData[currentStepTypeVariable].inputVariables?.forEach((element, index) => {
-                    taskErrorobj[currentStepTypeVariable].inputVariables.push(validationRules.inputVariable(element))
-                    taskErrorobj.isValid =
-                        taskErrorobj.isValid && taskErrorobj[currentStepTypeVariable].inputVariables[index].isValid
-                })
-                taskErrorobj[currentStepTypeVariable]['conditionDetails'] = []
-                taskData[currentStepTypeVariable].conditionDetails?.forEach((element, index) => {
-                    taskErrorobj[currentStepTypeVariable]['conditionDetails'].push(
-                        validationRules.conditionDetail(element),
+                    taskErrorobj[currentStepTypeVariable].inputVariables.push(
+                        validationRules.inputVariable(element, inputVarMap),
                     )
                     taskErrorobj.isValid =
-                        taskErrorobj.isValid && taskErrorobj[currentStepTypeVariable]['conditionDetails'][index].isValid
+                        taskErrorobj.isValid && taskErrorobj[currentStepTypeVariable].inputVariables[index].isValid
+                    inputVarMap.set(element.name, true)
                 })
                 if (taskData.stepType === PluginType.INLINE) {
                     taskErrorobj.inlineStepDetail.outputVariables = []
                     taskData.inlineStepDetail.outputVariables?.forEach((element, index) => {
-                        taskErrorobj.inlineStepDetail.outputVariables.push(validationRules.outputVariable(element))
+                        taskErrorobj.inlineStepDetail.outputVariables.push(
+                            validationRules.outputVariable(element, outputVarMap),
+                        )
                         taskErrorobj.isValid =
                             taskErrorobj.isValid && taskErrorobj.inlineStepDetail.outputVariables[index].isValid
+                        outputVarMap.set(element.name, true)
                     })
                     if (taskData.inlineStepDetail['scriptType'] === ScriptType.SHELL) {
                         taskErrorobj.inlineStepDetail['script'] = validationRules.requiredField(
@@ -420,6 +453,27 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                         }
                     }
                 }
+
+                taskErrorobj[currentStepTypeVariable]['conditionDetails'] = []
+                taskData[currentStepTypeVariable].conditionDetails?.forEach((element, index) => {
+                    if (element.conditionOnVariable) {
+                        if (
+                            ((element.conditionType === ConditionType.FAIL ||
+                                element.conditionType === ConditionType.PASS) &&
+                                !outputVarMap.get(element.conditionOnVariable)) ||
+                            ((element.conditionType === ConditionType.TRIGGER ||
+                                element.conditionType === ConditionType.SKIP) &&
+                                !inputVarMap.get(element.conditionOnVariable))
+                        ) {
+                            element.conditionOnVariable = ''
+                        }
+                    }
+                    taskErrorobj[currentStepTypeVariable]['conditionDetails'].push(
+                        validationRules.conditionDetail(element),
+                    )
+                    taskErrorobj.isValid =
+                        taskErrorobj.isValid && taskErrorobj[currentStepTypeVariable]['conditionDetails'][index].isValid
+                })
             }
         }
     }
@@ -441,10 +495,9 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
             const stepsLength = _formData[stageName].steps.length
             let isStageValid = true
             for (let i = 0; i < stepsLength; i++) {
-                if (!_formDataErrorObj[stageName]['steps'][i])
-                    _formDataErrorObj[stageName]['steps'].push({ isValid: true })
-                validateTask(_formData[stageName]['steps'][i], _formDataErrorObj[stageName]['steps'][i])
-                isStageValid = isStageValid && _formDataErrorObj[stageName]['steps'][i].isValid
+                if (!_formDataErrorObj[stageName].steps[i]) _formDataErrorObj[stageName].steps.push({ isValid: true })
+                validateTask(_formData[stageName].steps[i], _formDataErrorObj[stageName].steps[i])
+                isStageValid = isStageValid && _formDataErrorObj[stageName].steps[i].isValid
             }
             _formDataErrorObj[stageName].isValid = isStageValid
         }
@@ -465,16 +518,13 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
             _formData[activeStageName].steps = []
         }
         const stepsLength = _formData[activeStageName].steps?.length
-        let index = 0
         let _outputVariablesFromPrevSteps: Map<string, VariableType> = new Map(),
             _inputVariablesListPerTask: Map<string, VariableType>[] = []
         for (let i = 0; i < stepsLength; i++) {
-            if (!_formDataErrorObj[activeStageName]['steps'][i])
-                _formDataErrorObj[activeStageName]['steps'].push({ isValid: true })
+            if (!_formDataErrorObj[activeStageName].steps[i])
+                _formDataErrorObj[activeStageName].steps.push({ isValid: true })
             _inputVariablesListPerTask.push(new Map(_outputVariablesFromPrevSteps))
-            if (index <= _formData[activeStageName].steps[i].index) {
-                index = _formData[activeStageName].steps[i].index
-            }
+            _formData[activeStageName].steps[i].index = i + 1
             if (!_formData[activeStageName].steps[i].stepType) {
                 continue
             }
@@ -491,24 +541,25 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                 _formData[activeStageName].steps[i].stepType === PluginType.INLINE
                     ? 'inlineStepDetail'
                     : 'pluginRefStepDetail'
-            if (!_formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable]) {
-                _formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable] = {
+            if (!_formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable]) {
+                _formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable] = {
                     inputVariables: [],
                     outputVariables: [],
                 }
             }
-            if (!_formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable].inputVariables) {
-                _formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable].inputVariables = []
+            if (!_formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable].inputVariables) {
+                _formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable].inputVariables = []
             }
-            if (!_formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable].outputVariables) {
-                _formDataErrorObj[activeStageName]['steps'][i][currentStepTypeVariable].outputVariables = []
+            if (!_formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable].outputVariables) {
+                _formDataErrorObj[activeStageName].steps[i][currentStepTypeVariable].outputVariables = []
             }
             const outputVariablesLength =
                 _formData[activeStageName].steps[i][currentStepTypeVariable].outputVariables?.length
             for (let j = 0; j < outputVariablesLength; j++) {
                 if (_formData[activeStageName].steps[i][currentStepTypeVariable].outputVariables[j].name) {
                     _outputVariablesFromPrevSteps.set(
-                        index +
+                        i +
+                            1 +
                             '.' +
                             _formData[activeStageName].steps[i][currentStepTypeVariable].outputVariables[j].name,
                         {
@@ -531,7 +582,6 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                     const variableDetail =
                         _formData[activeStageName].steps[i][currentStepTypeVariable].inputVariables[key]
                     if (
-                        variableDetail.refVariableUsed &&
                         variableDetail.variableType === RefVariableType.FROM_PREVIOUS_STEP &&
                         variableDetail.refVariableStage ===
                             (activeStageName === BuildStageVariable.PreBuild
@@ -539,7 +589,6 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                                 : RefVariableStageType.POST_CI) &&
                         variableDetail.refVariableStepIndex > startIndex
                     ) {
-                        variableDetail.refVariableUsed = false
                         variableDetail.refVariableStepIndex = 0
                         variableDetail.refVariableName = ''
                         variableDetail.variableType = RefVariableType.NEW
@@ -550,13 +599,12 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
         }
         if (isFromAddNewTask) {
             _inputVariablesListPerTask.push(new Map(_outputVariablesFromPrevSteps))
-            index++
         }
         const _inputVariablesListFromPrevStep = { ...inputVariablesListFromPrevStep }
         _inputVariablesListFromPrevStep[activeStageName] = _inputVariablesListPerTask
         setInputVariablesListFromPrevStep(_inputVariablesListFromPrevStep)
         setFormDataErrorObj(_formDataErrorObj)
-        return { index: index, calculatedStageVariables: _inputVariablesListPerTask }
+        return { index: stepsLength + 1, calculatedStageVariables: _inputVariablesListPerTask }
     }
 
     const addNewTask = () => {
@@ -573,7 +621,7 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
         _formData[activeStageName].steps.push(stage)
         setFormData(_formData)
         const _formDataErrorObj = { ...formDataErrorObj }
-        _formDataErrorObj[activeStageName]['steps'].push({
+        _formDataErrorObj[activeStageName].steps.push({
             name: { isValid: true, message: null },
             isValid: true,
         })
@@ -639,7 +687,6 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                         selectedTaskIndex,
                         setSelectedTaskIndex,
                         calculateLastStepDetail,
-                        setPageState,
                         inputVariablesListFromPrevStep,
                         appId,
                         formDataErrorObj,
@@ -658,16 +705,17 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                         <Switch>
                             {isAdvanced && (
                                 <Route path={`${path}/pre-build`}>
-                                    <PreBuild />
+                                    <PreBuild presetPlugins={presetPlugins} sharedPlugins={sharedPlugins} />
                                 </Route>
                             )}
                             {isAdvanced && (
                                 <Route path={`${path}/post-build`}>
-                                    <PreBuild />
+                                    <PreBuild presetPlugins={presetPlugins} sharedPlugins={sharedPlugins} />
                                 </Route>
                             )}
                             <Route path={`${path}/build`}>
                                 <Build
+                                    pageState={pageState}
                                     showFormError={showFormError}
                                     isAdvanced={isAdvanced}
                                     ciPipelineId={ciPipeline.id}
@@ -698,7 +746,7 @@ export default function CIPipeline({ appName, connectCDPipelines, getWorkflows, 
                         </div>
                     </>
                 )}
-                {renderDeleteCIModal()}
+                {ciPipelineId && showDeleteModal && renderDeleteCIModal()}
             </div>
         </VisibleModal>
     )

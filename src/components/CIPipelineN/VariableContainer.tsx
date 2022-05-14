@@ -1,4 +1,4 @@
-import React, { useState, useContext, Fragment } from 'react'
+import React, { useState, useContext, Fragment, useEffect } from 'react'
 import { ReactComponent as Dropdown } from '../../assets/icons/ic-chevron-down.svg'
 import { FormErrorObjectType, FormType, PluginVariableType } from '../ciPipeline/types'
 import { ciPipelineContext } from './CIPipeline'
@@ -19,20 +19,33 @@ export function VariableContainer({ type }: { type: PluginVariableType }) {
         activeStageName: string
         formDataErrorObj: FormErrorObjectType
     } = useContext(ciPipelineContext)
+    const variableLength =
+        formData[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail[
+            type === PluginVariableType.INPUT ? 'inputVariables' : 'outputVariables'
+        ]?.length || 0
+    useEffect(() => {
+        if (collapsedSection) {
+            const invalidInputVariables = formDataErrorObj[activeStageName].steps[
+                selectedTaskIndex
+            ].pluginRefStepDetail.inputVariables?.some((inputVariable) => !inputVariable.isValid)
+            if (invalidInputVariables) {
+                setCollapsedSection(false) // expand input variables in case of error
+            }
+        }
+    }, [formDataErrorObj])
+
     return (
         <div>
             <div className="mb-10 flexbox justify-space">
                 <span
                     className="fw-6 fs-13 cn-9 pointer"
-                    onClick={(event) => {
-                        setCollapsedSection(!collapsedSection)
+                    onClick={() => {
+                        variableLength > 0 && setCollapsedSection(!collapsedSection)
                     }}
                 >
                     {type} variables
                 </span>
-                {formData[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail[
-                    type === PluginVariableType.INPUT ? 'inputVariables' : 'outputVariables'
-                ] ? (
+                {variableLength > 0 ? (
                     <Dropdown
                         className="pointer"
                         style={{ transform: collapsedSection ? 'rotate(0)' : 'rotate(180deg)' }}

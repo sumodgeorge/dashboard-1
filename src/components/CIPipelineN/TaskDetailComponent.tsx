@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { ConfigurationType, ViewType } from '../../config'
-import { RadioGroup, showError } from '../common'
+import { Progressing, RadioGroup, showError } from '../common'
 import {
     ConditionContainerType,
     FormErrorObjectType,
@@ -26,7 +26,6 @@ export function TaskDetailComponent() {
     const {
         formData,
         setFormData,
-        setPageState,
         selectedTaskIndex,
         activeStageName,
         appId,
@@ -36,7 +35,6 @@ export function TaskDetailComponent() {
     }: {
         formData: FormType
         setFormData: React.Dispatch<React.SetStateAction<FormType>>
-        setPageState: React.Dispatch<React.SetStateAction<string>>
         selectedTaskIndex: number
         activeStageName: string
         appId: number
@@ -52,6 +50,7 @@ export function TaskDetailComponent() {
         }
         setFormDataErrorObj: React.Dispatch<React.SetStateAction<FormErrorObjectType>>
     } = useContext(ciPipelineContext)
+    const [pageState, setPageState] = useState(ViewType.FORM)
     const validationRules = new ValidationRules()
     const [configurationType, setConfigurationType] = useState<string>('GUI')
     const [editorValue, setEditorValue] = useState<string>('')
@@ -76,26 +75,24 @@ export function TaskDetailComponent() {
         }
     }, [])
 
+    const setVariableStepIndexInPlugin = (variable): VariableType => {
+        variable.variableStepIndexInPlugin = variable.variableStepIndex
+        delete variable.variableStepIndex
+        return variable
+    }
+
     const processPluginData = (pluginData) => {
         const _form = { ...formData }
         if (_form[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail.outputVariables?.length === 0) {
             _form[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail.outputVariables =
-                pluginData.outputVariables?.map((variable) => {
-                    variable.variableStepIndexInPlugin = variable.variableStepIndex
-                    delete variable.variableStepIndex
-                    return variable
-                })
-            if (_form[activeStageName]['steps'].length > selectedTaskIndex) {
+                pluginData.outputVariables?.map(setVariableStepIndexInPlugin)
+            if (_form[activeStageName].steps.length > selectedTaskIndex) {
                 calculateLastStepDetail(false, _form, activeStageName, selectedTaskIndex)
             }
         }
         if (_form[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail.inputVariables?.length === 0) {
             _form[activeStageName].steps[selectedTaskIndex].pluginRefStepDetail.inputVariables =
-                pluginData.inputVariables?.map((variable) => {
-                    variable.variableStepIndexInPlugin = variable.variableStepIndex
-                    delete variable.variableStepIndex
-                    return variable
-                })
+                pluginData.inputVariables?.map(setVariableStepIndexInPlugin)
         }
         setFormData(_form)
     }
@@ -153,7 +150,11 @@ export function TaskDetailComponent() {
         setFormData(_formData)
     }
 
-    return (
+    return pageState === ViewType.LOADING.toString() ? (
+        <div style={{ minHeight: '200px' }} className="flex">
+            <Progressing pageLoader />
+        </div>
+    ) : (
         <div>
             <div>
                 <div className="row-container mb-12">
@@ -227,22 +228,28 @@ export function TaskDetailComponent() {
                             <hr />
                         </>
                     )}
-                    {formData[activeStageName].steps[selectedTaskIndex].stepType === PluginType.INLINE && (
-                        <TaskTypeDetailComponent />
-                    )}
                     {formData[activeStageName].steps[selectedTaskIndex].stepType === PluginType.INLINE ? (
-                        <CustomInputOutputVariables type={PluginVariableType.OUTPUT} />
+                        <>
+                            <TaskTypeDetailComponent />
+                            {formData[activeStageName].steps[selectedTaskIndex][currentStepTypeVariable].scriptType !==
+                                ScriptType.CONTAINERIMAGE && (
+                                <CustomInputOutputVariables type={PluginVariableType.OUTPUT} />
+                            )}
+                        </>
                     ) : (
                         <VariableContainer type={PluginVariableType.OUTPUT} />
                     )}
-                    <hr />
                     {formData[activeStageName].steps[selectedTaskIndex][currentStepTypeVariable]?.outputVariables
-                        ?.length > 0 && (
-                        <>
-                            <ConditionContainer type={ConditionContainerType.PASS_FAILURE} />
-                            <hr />
-                        </>
-                    )}
+                        ?.length > 0 &&
+                        (formData[activeStageName].steps[selectedTaskIndex].stepType !== PluginType.INLINE ||
+                            formData[activeStageName].steps[selectedTaskIndex][currentStepTypeVariable].scriptType !==
+                                ScriptType.CONTAINERIMAGE) && (
+                            <>
+                                <hr />
+                                <ConditionContainer type={ConditionContainerType.PASS_FAILURE} />
+                                <hr />
+                            </>
+                        )}
                 </>
             ) : (
                 <YAMLScriptComponent

@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { pluginSelectStyle, baseSelectStyles } from './ciPipeline.utils'
-import { RefVariableType, PluginType, FormType, VariableType, RefVariableStageType, FormErrorObjectType, StepType, TaskErrorObj } from '../ciPipeline/types'
+import {
+    RefVariableType,
+    PluginType,
+    FormType,
+    VariableType,
+    RefVariableStageType,
+    FormErrorObjectType,
+    StepType,
+    TaskErrorObj,
+} from '../ciPipeline/types'
 import { ciPipelineContext } from './CIPipeline'
 import CreatableSelect from 'react-select/creatable'
 import { components } from 'react-select'
@@ -19,7 +28,7 @@ function CustomInputVariableSelect({ selectedVariableIndex }: { selectedVariable
         globalVariables,
         formDataErrorObj,
         setFormDataErrorObj,
-        validateTask
+        validateTask,
     }: {
         formData: FormType
         setFormData: React.Dispatch<React.SetStateAction<FormType>>
@@ -125,40 +134,28 @@ function CustomInputVariableSelect({ selectedVariableIndex }: { selectedVariable
         let _variableDetail
         if (selectedValue['refVariableStepIndex']) {
             _variableDetail = {
-                refVariableUsed: true,
                 value: '',
                 variableType: RefVariableType.FROM_PREVIOUS_STEP,
                 refVariableStepIndex: selectedValue['refVariableStepIndex'],
                 refVariableName: selectedValue.label,
                 format: selectedValue['format'],
-                refVariableStage:
-                    activeStageName === BuildStageVariable.PreBuild
-                        ? RefVariableStageType.PRE_CI
-                        : RefVariableStageType.POST_CI,
+                refVariableStage: selectedValue['refVariableStage'],
             }
         } else if (selectedValue['variableType'] === RefVariableType.GLOBAL) {
             _variableDetail = {
-                refVariableUsed: true,
                 variableType: RefVariableType.GLOBAL,
                 refVariableStepIndex: 0,
                 refVariableName: selectedValue.label,
                 format: selectedValue['format'],
                 value: '',
-                refVariableStage:
-                    activeStageName === BuildStageVariable.PreBuild
-                        ? RefVariableStageType.PRE_CI
-                        : RefVariableStageType.POST_CI,
+                refVariableStage: '',
             }
         } else {
             _variableDetail = {
-                refVariableUsed: false,
                 variableType: RefVariableType.NEW,
                 value: selectedValue.label,
                 refVariableName: '',
-                refVariableStage:
-                    activeStageName === BuildStageVariable.PreBuild
-                        ? RefVariableStageType.PRE_CI
-                        : RefVariableStageType.POST_CI,
+                refVariableStage: '',
             }
         }
         let _inputVariables =
@@ -267,10 +264,8 @@ function CustomInputVariableSelect({ selectedVariableIndex }: { selectedVariable
     }
 
     const handleKeyDown = (event) => {
-        switch (event.key) {
-            case 'Enter':
-            case 'Tab':
-                event.target.blur()
+        if (event.key === 'Enter' || event.key === 'Tab') {
+            event.target.blur()
         }
     }
 
