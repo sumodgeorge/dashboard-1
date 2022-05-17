@@ -40,8 +40,8 @@ export default function DeploymentHistoryHeader({
                     baseConfigurationId,
                     historyComponentName,
                 ).then((response) => {
+                    const deploymentTemplateOption = []
                     if (response.result) {
-                        let deploymentTemplateOption = []
                         const resultLen = response.result.length
                         for (let i = 0; i < resultLen; i++) {
                             if (response.result[i].id.toString() === baseConfigurationId) {
@@ -55,11 +55,12 @@ export default function DeploymentHistoryHeader({
                                 })
                             }
                         }
-                        setPreviousConfigAvailable(deploymentTemplateOption.length > 0)
-                        setDeploymentTemplateOption(deploymentTemplateOption)
-                        setSelectedDeploymentTemplate(deploymentTemplateOption[0])
                     }
-                    setLoader(false)
+                    setPreviousConfigAvailable(deploymentTemplateOption.length > 0)
+                    setDeploymentTemplateOption(deploymentTemplateOption)
+                    setSelectedDeploymentTemplate(
+                        deploymentTemplateOption[0] || { label: 'NA', value: 'NA', author: 'NA', status: 'NA' },
+                    )
                 })
             } catch (err) {
                 showError(err)
@@ -115,8 +116,9 @@ export default function DeploymentHistoryHeader({
                                 content={
                                     <span style={{ display: 'block', width: '180px' }}>
                                         {
-                                            DEPLOYMENT_HISTORY_CONFIGURATION_LIST_MAP[historyComponent.toUpperCase()]
-                                                ?.DISPLAY_NAME
+                                            DEPLOYMENT_HISTORY_CONFIGURATION_LIST_MAP[
+                                                historyComponent.replace('-', '_').toUpperCase()
+                                            ]?.DISPLAY_NAME
                                         }
                                         {historyComponentName ? ` “${historyComponentName}”` : ''} was added in this
                                         deployment. There is no previous instance to compare with.

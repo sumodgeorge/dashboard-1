@@ -15,8 +15,6 @@ import DeploymentHistoryDiffView from './DeploymentHistoryDiffView'
 export default function DeploymentHistoryDetailedView({
     showTemplate,
     setShowTemplate,
-    loader,
-    setLoader,
     deploymentHistoryList,
     setDeploymentHistoryList,
 }: CompareViewDeploymentType) {
@@ -25,33 +23,39 @@ export default function DeploymentHistoryDetailedView({
     const [selectedDeploymentTemplate, setSelectedDeploymentTemplate] = useState<DeploymentTemplateOptions>()
     const [currentConfiguration, setCurrentConfiguration] = useState<DeploymentHistoryDetail>()
     const [baseTemplateConfiguration, setBaseTemplateConfiguration] = useState<DeploymentHistoryDetail>()
-    const [codeEditorLoading, setCodeEditorLoading] = useState<boolean>(false)
     const [previousConfigAvailable, setPreviousConfigAvailable] = useState<boolean>(true)
+    const [loader, setLoader] = useState<boolean>(true)
 
     useEffect(() => {
         if (selectedDeploymentTemplate) {
-            try {
-                setLoader(true)
-                getDeploymentHistoryDetail(
-                    appId,
-                    pipelineId,
-                    selectedDeploymentTemplate.value,
-                    historyComponent,
-                    historyComponentName,
-                ).then((response) => {
-                    setCurrentConfiguration(prepareHistoryData(response.result, historyComponent))
-                })
-            } catch (err) {
-                showError(err)
-            } finally {
+            setLoader(true)
+            if (selectedDeploymentTemplate.value === 'NA') {
                 setLoader(false)
+            } else {
+                try {
+                    getDeploymentHistoryDetail(
+                        appId,
+                        pipelineId,
+                        selectedDeploymentTemplate.value,
+                        historyComponent,
+                        historyComponentName,
+                    ).then((response) => {
+                        setCurrentConfiguration(prepareHistoryData(response.result, historyComponent))
+                        setLoader(false)
+                    })
+                } catch (err) {
+                    showError(err)
+                    setLoader(false)
+                }
             }
         }
     }, [selectedDeploymentTemplate])
 
     useEffect(() => {
         try {
-            setCodeEditorLoading(true)
+            setLoader(true)
+            setSelectedDeploymentTemplate(null)
+            setCurrentConfiguration(null)
             getDeploymentHistoryDetail(
                 appId,
                 pipelineId,
@@ -63,12 +67,14 @@ export default function DeploymentHistoryDetailedView({
             })
         } catch (err) {
             showError(err)
-        } finally {
-            setCodeEditorLoading(false)
+            setLoader(false)
         }
     }, [baseConfigurationId, historyComponent, historyComponentName])
 
     useEffect(() => {
+        //show template showing historical diff detailed view
+        //in case if !shoowTemplate CD detail component being rendered
+
         if (!showTemplate) {
             setShowTemplate(true)
         }
@@ -78,7 +84,7 @@ export default function DeploymentHistoryDetailedView({
                 setShowTemplate(false)
             }
         }
-    }, [showTemplate])
+    }, [])
 
     return (
         <>
@@ -101,7 +107,6 @@ export default function DeploymentHistoryDetailedView({
                     <DeploymentHistoryDiffView
                         currentConfiguration={currentConfiguration}
                         baseTemplateConfiguration={baseTemplateConfiguration}
-                        codeEditorLoading={codeEditorLoading}
                         previousConfigAvailable={previousConfigAvailable}
                     />
                 )}

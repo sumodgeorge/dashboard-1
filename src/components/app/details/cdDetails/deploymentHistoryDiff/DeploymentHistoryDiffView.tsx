@@ -9,41 +9,40 @@ import { DEPLOYMENT_HISTORY_CONFIGURATION_LIST_MAP } from '../../../../../config
 export default function DeploymentHistoryDiffView({
     currentConfiguration,
     baseTemplateConfiguration,
-    codeEditorLoading,
     previousConfigAvailable,
 }: DeploymentTemplateHistoryType) {
     const { historyComponent, historyComponentName } = useParams<DeploymentHistoryParamsType>()
     const ref = useRef(null)
-    const [height, setHeight] = useState('')
+    const [codeEditorHeight, setCodeEditorHeight] = useState('')
+    const { innerHeight } = window
 
     useEffect(() => {
-        let dynamicHeight = ref.current?.clientHeight + 255 + (!previousConfigAvailable ? 55 : 0)
-        setHeight(`calc(100vh - ${dynamicHeight}px)`)
-        console.log('height', height)
-    }, [ref])
+        if (ref.current) {
+            const dynamicHeight = ref.current?.clientHeight + 255 + (!previousConfigAvailable ? 55 : 0)
+            setCodeEditorHeight((innerHeight - dynamicHeight < 400 ? 400 : innerHeight - dynamicHeight) + 'px')
+        }
+    }, [ref?.current?.clientHeight])
 
     const renderDeploymentDiffViaCodeEditor = () => {
         return (
-            baseTemplateConfiguration?.codeEditorValue?.value && (
-                <CodeEditor
-                    value={YAML.stringify(JSON.parse(baseTemplateConfiguration.codeEditorValue.value))}
-                    defaultValue={currentConfiguration?.codeEditorValue?.value}
-                    height={height}
-                    mode="yaml"
-                    diffView={previousConfigAvailable && true}
-                    readOnly={true}
-                    loading={codeEditorLoading}
-                ></CodeEditor>
-            )
+            <CodeEditor
+                value={YAML.stringify(JSON.parse(baseTemplateConfiguration.codeEditorValue.value))}
+                defaultValue={
+                    currentConfiguration?.codeEditorValue?.value &&
+                    YAML.stringify(JSON.parse(currentConfiguration.codeEditorValue.value))
+                }
+                height={codeEditorHeight}
+                diffView={previousConfigAvailable && true}
+                readOnly={true}
+                noParsing
+            ></CodeEditor>
         )
     }
     const renderDetailedValue = (parentClassName: string, singleValue: DeploymentHistorySingleValue) => {
-        const titleStyle = 'cn-6 pt-8 pl-16 pr-16 lh-16'
-        const descriptionStyle = 'cn-9 fs-13 pb-8 pl-16 pr-16 lh-20 mh-28 text-capitalize'
         return (
             <div className={parentClassName}>
-                <div className={titleStyle}>{singleValue.displayName}</div>
-                <div className={descriptionStyle}>{singleValue.value.toLowerCase()}</div>
+                <div className="cn-6 pt-8 pl-16 pr-16 lh-16">{singleValue.displayName}</div>
+                <div className="cn-9 fs-13 pb-8 pl-16 pr-16 lh-20 mh-28">{singleValue.value}</div>
             </div>
         )
     }
@@ -54,7 +53,10 @@ export default function DeploymentHistoryDiffView({
                 <div className="bcb-1 eb-2 pt-8 pb-8 br-4 flexbox pl-4 cn-9 fs-13 mt-16 mb-16 mr-20 ml-20">
                     <Info className="mr-8 ml-14 icon-dim-20" />
                     <span className="lh-20">
-                        {DEPLOYMENT_HISTORY_CONFIGURATION_LIST_MAP[historyComponent.toUpperCase()]?.DISPLAY_NAME}
+                        {
+                            DEPLOYMENT_HISTORY_CONFIGURATION_LIST_MAP[historyComponent.replace('-', '_').toUpperCase()]
+                                ?.DISPLAY_NAME
+                        }
                         {historyComponentName ? ` “${historyComponentName}”` : ''} was added in this deployment. There
                         is no previous instance to compare with.
                     </span>
@@ -67,7 +69,7 @@ export default function DeploymentHistoryDiffView({
                 ref={ref}
             >
                 {baseTemplateConfiguration &&
-                    Object.keys({ ...currentConfiguration?.values, ...baseTemplateConfiguration?.values }).map(
+                    Object.keys({ ...currentConfiguration?.values, ...baseTemplateConfiguration.values }).map(
                         (configKey, index) => {
                             const currentValue = currentConfiguration?.values?.[configKey]
                             const baseValue = baseTemplateConfiguration.values[configKey]
@@ -94,7 +96,7 @@ export default function DeploymentHistoryDiffView({
                 <div className="code-editor-header-value pl-16 pr-16 pt-12 pb-12 fs-13 fw-6 cn-9 bcn-0">
                     {baseTemplateConfiguration?.codeEditorValue?.['displayName']}
                 </div>
-                {renderDeploymentDiffViaCodeEditor()}
+                {baseTemplateConfiguration?.codeEditorValue?.value && renderDeploymentDiffViaCodeEditor()}
             </div>
         </div>
     )
