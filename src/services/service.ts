@@ -42,9 +42,9 @@ export const getTeamList = (): Promise<TeamList> => {
     });
 };
 
-export const getTeamListMin = (): Promise<TeamList> => {
+export const getTeamListMin = (withoutAuth?: boolean): Promise<TeamList> => {
     // ignore active field
-    const URL = `${Routes.PROJECT_LIST_MIN}`;
+    const URL = `${Routes.PROJECT_LIST_MIN}${withoutAuth ? '?auth=false' : ''}`
     return get(URL).then(response => {
         let list = [];
         if (response && response.result && Array.isArray(response.result)) {
