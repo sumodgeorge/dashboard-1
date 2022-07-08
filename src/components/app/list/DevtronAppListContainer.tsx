@@ -131,7 +131,7 @@ class DevtronAppListContainer extends Component<AppListProps, AppListState>{
 
         this.abortController = new AbortController();
 
-        getAppList(request, { signal: this.abortController.signal }).then((response) => {
+        getAppList(request, { signal: this.abortController.signal, timeout: 3 * 60000 }).then((response) => {
             let view = AppListViewType.LIST;
             if (response.result.appCount === 0) {
                 if (isSearchOrFilterApplied) view = AppListViewType.NO_RESULT;
