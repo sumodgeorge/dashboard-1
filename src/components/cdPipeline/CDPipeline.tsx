@@ -114,6 +114,7 @@ export default class CDPipeline extends Component<CDPipelineProps, CDPipelineSta
             isAdvanced: false,
             forceDeleteDialogMessage: '',
             forceDeleteDialogTitle: '',
+            isCascadeDelete: true,
         }
         this.validationRules = new ValidationRules()
         this.handleRunInEnvCheckbox = this.handleRunInEnvCheckbox.bind(this)
@@ -623,6 +624,7 @@ export default class CDPipeline extends Component<CDPipelineProps, CDPipelineSta
             pipeline: {
                 id: this.state.pipelineConfig.id,
             },
+            cascadeDelete: this.state.isCascadeDelete,
         }
 
         deleteCDPipeline(payload, force)
@@ -681,7 +683,11 @@ export default class CDPipeline extends Component<CDPipelineProps, CDPipelineSta
     }
 
     closeCDDeleteModal = () => {
-        this.setState({ showDeleteModal: false })
+        if (this.state.showDeleteModal) {
+            this.setState({ showDeleteModal: false })
+        } else {
+            this.setState({ showForceDeleteDialog: false })
+        }
     }
 
     renderHeader() {
@@ -938,26 +944,47 @@ export default class CDPipeline extends Component<CDPipelineProps, CDPipelineSta
         )
     }
 
+    handleCascadeDeleteChange() {
+        let _state = { ...this.state }
+        _state.isCascadeDelete = !_state.isCascadeDelete
+        this.setState(_state)
+    }
+
     renderDeleteCDModal() {
         if (this.props.match.params.cdPipelineId) {
-            if (this.state.showDeleteModal) {
+            if (this.state.showDeleteModal || this.state.showForceDeleteDialog) {
                 return (
                     <DeleteDialog
-                        title={`Delete '${this.state.pipelineConfig.name}' ?`}
-                        description={`Are you sure you want to delete this CD Pipeline from '${this.props.appName}' ?`}
-                        delete={() => this.deleteCD(false)}
+                        title={
+                            this.state.showDeleteModal
+                                ? `Delete '${this.state.pipelineConfig.name}' ?`
+                                : this.state.forceDeleteDialogTitle
+                        }
+                        delete={() => this.deleteCD(!this.state.showDeleteModal)}
                         closeDelete={this.closeCDDeleteModal}
-                    />
-                )
-            }
-            if (!this.state.showDeleteModal && this.state.showForceDeleteDialog) {
-                return (
-                    <ForceDeleteDialog
-                        forceDeleteDialogTitle={this.state.forceDeleteDialogTitle}
-                        onClickDelete={() => this.deleteCD(true)}
-                        closeDeleteModal={() => this.setState({ showForceDeleteDialog: false })}
-                        forceDeleteDialogMessage={this.state.forceDeleteDialogMessage}
-                    />
+                        deletePrefix={this.state.showDeleteModal ? '' : 'Force'}
+                    >
+                        <DeleteDialog.Description>
+                            {this.state.showDeleteModal ? (
+                                <p>Are you sure you want to delete this CD Pipeline from '{this.props.appName}' ?</p>
+                            ) : (
+                                <>
+                                    <p className="mt-12 mb-12 p-8" style={{ backgroundColor: '#f2f4f7' }}>
+                                        Error: {this.state.forceDeleteDialogMessage}
+                                    </p>
+                                    <p>Do you want to force delete?</p>
+                                </>
+                            )}
+
+                            <Checkbox
+                                isChecked={this.state.isCascadeDelete}
+                                value={CHECKBOX_VALUE.CHECKED}
+                                onChange={this.handleCascadeDeleteChange}
+                            >
+                                <span className="mr-5">Delete CD pipeline's kubernetes resources</span>
+                            </Checkbox>
+                        </DeleteDialog.Description>
+                    </DeleteDialog>
                 )
             }
         }
