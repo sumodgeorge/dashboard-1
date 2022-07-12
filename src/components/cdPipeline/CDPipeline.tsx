@@ -120,6 +120,7 @@ export default class CDPipeline extends Component<CDPipelineProps, CDPipelineSta
         this.handleRunInEnvCheckbox = this.handleRunInEnvCheckbox.bind(this)
         this.savePipeline = this.savePipeline.bind(this)
         this.selectEnvironment = this.selectEnvironment.bind(this)
+        this.handleCascadeDeleteChange = this.handleCascadeDeleteChange.bind(this)
     }
 
     componentDidMount() {
