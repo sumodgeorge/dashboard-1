@@ -11,13 +11,14 @@ import ReactGA from 'react-ga';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import 'monaco-editor';
 // @ts-ignore
-import 'monaco-yaml/lib/esm/monaco.contribution';
-// @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import EditorWorker from 'worker-loader!monaco-editor/esm/vs/editor/editor.worker';
 // @ts-ignore
 // eslint-disable-next-line import/no-webpack-loader-syntax
-import YamlWorker from 'worker-loader!monaco-yaml/lib/esm/yaml.worker';
+import JsonWorker from 'worker-loader!monaco-editor/esm/vs/language/json/json.worker'
+// @ts-ignore
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import YamlWorker from 'worker-loader!monaco-yaml/yaml.worker';
 import { MODES } from '../../../src/config/constants';
 import { cleanKubeManifest } from '../../../src/util/Util';
 
@@ -27,6 +28,8 @@ window.MonacoEnvironment = {
     getWorker(workerId, label: string) {
         if (label === MODES.YAML) {
             return new YamlWorker()
+        } else if (label === MODES.JSON) {
+            return new JsonWorker()
         }
         return new EditorWorker()
     },
@@ -173,8 +176,7 @@ const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.
     }
 
     useEffect(() => {
-        if (!validatorSchema) return;
-        yaml &&
+        if (validatorSchema && yaml) {
             yaml.yamlDefaults.setDiagnosticsOptions({
                 validate: true,
                 enableSchemaRequest: true,
@@ -182,15 +184,17 @@ const CodeEditor: React.FC<CodeEditorInterface> & CodeEditorComposition = React.
                 completion: true,
                 isKubernetes: isKubernetes,
                 format: true,
-                schemas:[
+                schemas: [
                     {
                         uri: 'https://devtron.ai/schema.json', // id of the first schema
                         fileMatch: ['*'], // associate with our model
                         schema: validatorSchema,
-                    }]
-            });
+                    },
+                ],
+            })
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [validatorSchema]);
+    }, [validatorSchema])
 
     useEffect(() => {
         if (!editorRef.current) return
