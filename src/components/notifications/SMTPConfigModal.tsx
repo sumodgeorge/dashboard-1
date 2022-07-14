@@ -1,31 +1,28 @@
 import React, { Component } from 'react'
 import { VisibleModal, showError, Progressing, Checkbox, validateEmail } from '../common'
-import { saveEmailConfiguration, getSESConfiguration } from './notifications.service'
+import { getSMTPConfiguration, saveEmailConfiguration } from './notifications.service'
 import { ReactComponent as Close } from '../../assets/icons/ic-close.svg'
 import { ReactComponent as Error } from '../../assets/icons/ic-warning.svg'
-import { ReactComponent as Info } from '../../assets/icons/ic-info-filled.svg'
 import { toast } from 'react-toastify'
 import { ViewType } from '../../config/constants'
-import { multiSelectStyles, DropdownIndicator } from './notifications.util'
-import { Option } from '../v2/common/ReactSelect.utils'
-import awsRegionList from '../common/awsRegionList.json'
-import ReactSelect from 'react-select'
+import { ProtectedInput } from '../globalConfigurations/GlobalConfiguration'
 
-export interface SESConfigModalProps {
-    sesConfigId: number
+export interface SMTPConfigModalProps {
+    smtpConfigId: number
     shouldBeDefault: boolean
-    selectSESFromChild?: (sesConfigId: number) => void
+    selectSMTPFromChild?: (smtpConfigId: number) => void
     onSaveSuccess: () => void
-    closeSESConfigModal: (event) => void
+    closeSMTPConfigModal: (event) => void
 }
 
-export interface SESConfigModalState {
+export interface SMTPConfigModalState {
     view: string
     form: {
         configName: string
-        accessKey: string
-        secretKey: string
-        region: { label: string; value: string }
+        port: number
+        host: string
+        authUser: string
+        authPassword: string
         fromEmail: string
         default: boolean
         isLoading: boolean
@@ -33,28 +30,26 @@ export interface SESConfigModalState {
     }
     isValid: {
         configName: boolean
-        accessKey: boolean
-        secretKey: boolean
-        region: boolean
+        port: boolean
+        host: boolean
+        authUser: boolean
+        authPassword: boolean
         fromEmail: boolean
     }
-    secretKey: string
 }
 
-export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModalState> {
+export class SMTPConfigModal extends Component<SMTPConfigModalProps, SMTPConfigModalState> {
     _configName
-    awsRegionListParsed = awsRegionList.map((region) => {
-        return { label: region.name, value: region.value }
-    })
     constructor(props) {
         super(props)
         this.state = {
             view: ViewType.LOADING,
             form: {
                 configName: '',
-                accessKey: '',
-                secretKey: '',
-                region: { label: '', value: '' },
+                port: null,
+                host: '',
+                authUser: '',
+                authPassword: '',
                 fromEmail: '',
                 default: this.props.shouldBeDefault,
                 isLoading: false,
@@ -62,45 +57,37 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
             },
             isValid: {
                 configName: true,
-                accessKey: true,
-                secretKey: true,
-                region: true,
+                port: true,
+                host: true,
+                authUser: true,
+                authPassword: true,
                 fromEmail: true,
             },
-            secretKey: '',
         }
-        this.handleConfigNameChange = this.handleConfigNameChange.bind(this)
-        this.handleAWSRegionChange = this.handleAWSRegionChange.bind(this)
-        this.handleAccessKeyIDChange = this.handleAccessKeyIDChange.bind(this)
-        this.handleSecretAccessKeyChange = this.handleSecretAccessKeyChange.bind(this)
-        this.handleEmailChange = this.handleEmailChange.bind(this)
         this.handleCheckbox = this.handleCheckbox.bind(this)
         this.handleBlur = this.handleBlur.bind(this)
+        this.handleInputChange = this.handleInputChange.bind(this)
     }
 
     componentDidMount() {
-        if (this.props.sesConfigId) {
-            getSESConfiguration(this.props.sesConfigId)
+        if (this.props.smtpConfigId) {
+            getSMTPConfiguration(this.props.smtpConfigId)
                 .then((response) => {
                     let state = { ...this.state }
-                    let region = response.result.region
-                    let awsRegion = this.awsRegionListParsed.find((r) => r.value === region)
                     state.form = {
                         ...response.result,
                         isLoading: false,
                         isError: true,
-                        region: awsRegion,
-                        secretKey: '*******',
                     }
                     state.view = ViewType.FORM
                     state.isValid = {
                         configName: true,
-                        accessKey: true,
-                        secretKey: true,
-                        region: true,
+                        port: true,
+                        host: true,
+                        authUser: true,
+                        authPassword: true,
                         fromEmail: true,
                     }
-                    state.secretKey = response.result.secretKey
                     this.setState(state)
                 })
                 .then(() => {
@@ -120,63 +107,25 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
         }
     }
 
-    handleBlur(event, key: string): void {
+    handleBlur(event): void {
         let { isValid } = { ...this.state }
-        if (key !== 'region') isValid[key] = !!event.target.value.length
-        else isValid[key] = !!this.state.form.region.value
+        isValid[event.target.name] = !!event.target.value.length
         this.setState({ isValid })
     }
 
-    handleConfigNameChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    handleInputChange(event: React.ChangeEvent<HTMLInputElement>): void {
         let { form } = { ...this.state }
-        form.configName = event.target.value
+        form[event.target.name] = event.target.value
         this.setState({ form })
     }
 
-    handleAccessKeyIDChange(event: React.ChangeEvent<HTMLInputElement>): void {
-        let { form, isValid } = { ...this.state }
-        form.accessKey = event.target.value
-        this.setState({ form, isValid })
-    }
-
-    handleSecretAccessKeyChange(event: React.ChangeEvent<HTMLInputElement>): void {
-        let { form, isValid } = { ...this.state }
-        let secretKey = this.state.secretKey
-        form.secretKey = event.target.value
-        if (event.target.value.indexOf('*') < 0 && event.target.value.length > 0) {
-            secretKey = event.target.value
-        }
-        this.setState({ form, isValid, secretKey })
-    }
-
-    handleAWSRegionChange(event): void {
-        let { form, isValid } = { ...this.state }
-        form.region = event
-        isValid.region = !!event
-        this.setState({ form, isValid })
-    }
-
-    handleEmailChange(event: React.ChangeEvent<HTMLInputElement>): void {
-        let { form, isValid } = { ...this.state }
-        form.fromEmail = event.target.value
-        this.setState({ form, isValid })
-    }
-
-    handleCheckbox(event): void {
+    handleCheckbox(): void {
         let { form, isValid } = { ...this.state }
         form.default = !form.default
         this.setState({ form, isValid })
     }
 
-    getPayload = () => {
-        return {
-            ...this.state.form,
-            region: this.state.form.region.value,
-            secretKey: this.state.secretKey,
-        }
-    }
-
-    saveSESConfig(): void {
+    saveSMTPConfig(): void {
         let keys = Object.keys(this.state.isValid)
         let isFormValid = keys.reduce((isFormValid, key) => {
             isFormValid = isFormValid && this.state.isValid[key]
@@ -196,16 +145,15 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
             state.form.isError = false
             this.setState(state)
         }
-
-        saveEmailConfiguration(this.getPayload(), 'ses')
+        saveEmailConfiguration(this.state.form, 'smtp')
             .then((response) => {
                 let state = { ...this.state }
                 state.form.isLoading = false
                 this.setState(state)
                 toast.success('Saved Successfully')
                 this.props.onSaveSuccess()
-                if (this.props.selectSESFromChild) {
-                    this.props.selectSESFromChild(response?.result[0])
+                if (this.props.selectSMTPFromChild) {
+                    this.props.selectSMTPFromChild(response?.result[0])
                 }
             })
             .catch((error) => {
@@ -221,15 +169,15 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
             <VisibleModal className="">
                 <div className="modal__body modal__body--w-600 modal__body--p-0 no-top-radius mt-0">
                     <div className="modal__header m-24">
-                        <h1 className="modal__title">Configure SES</h1>
-                        <button type="button" className="transparent" onClick={this.props.closeSESConfigModal}>
+                        <h1 className="modal__title">Configure SMTP</h1>
+                        <button type="button" className="transparent" onClick={this.props.closeSMTPConfigModal}>
                             <Close className="icon-dim-24" />
                         </button>
                     </div>
                     <form
                         onSubmit={(event) => {
                             event.preventDefault()
-                            this.saveSESConfig()
+                            this.saveSMTPConfig()
                         }}
                     >
                         {body}
@@ -257,10 +205,10 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                                 ref={(node) => (this._configName = node)}
                                 className="form__input"
                                 type="text"
-                                name="configname"
+                                name="configName"
                                 value={this.state.form.configName}
-                                onChange={this.handleConfigNameChange}
-                                onBlur={(event) => this.handleBlur(event, 'configName')}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleBlur}
                                 placeholder="Configuration name"
                                 autoFocus={true}
                                 tabIndex={1}
@@ -276,20 +224,20 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                             </span>
                         </label>
                         <label className="form__row">
-                            <span className="form__label">Access Key ID*</span>
+                            <span className="form__label">SMTP Host*</span>
                             <input
                                 className="form__input"
                                 type="text"
-                                name="app-name"
-                                value={this.state.form.accessKey}
-                                onChange={this.handleAccessKeyIDChange}
-                                onBlur={(event) => this.handleBlur(event, 'accessKey')}
-                                placeholder="Access Key ID"
+                                name="host"
+                                value={this.state.form.host}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleBlur}
+                                placeholder="Eg. smtp.gmail.com"
                                 tabIndex={2}
                                 required
                             />
                             <span className="form__error">
-                                {!this.state.isValid.accessKey ? (
+                                {!this.state.isValid.host ? (
                                     <>
                                         <Error className="form__icon form__icon--error" />
                                         This is a required field <br />
@@ -298,20 +246,20 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                             </span>
                         </label>
                         <label className="form__row">
-                            <span className="form__label">Secret Access Key*</span>
+                            <span className="form__label">SMTP Port*</span>
                             <input
                                 className="form__input"
                                 type="text"
-                                name="app-name"
-                                value={this.state.form.secretKey}
-                                onChange={this.handleSecretAccessKeyChange}
-                                onBlur={(event) => this.handleBlur(event, 'secretKey')}
-                                placeholder="Secret Access Key"
+                                name="port"
+                                value={this.state.form.port}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleBlur}
+                                placeholder="Enter SMTP port"
                                 tabIndex={3}
                                 required
                             />
                             <span className="form__error">
-                                {!this.state.isValid.secretKey ? (
+                                {!this.state.isValid.port ? (
                                     <>
                                         <Error className="form__icon form__icon--error" />
                                         This is a required field <br />
@@ -321,34 +269,21 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                         </label>
                         <div className="form__row">
                             <label htmlFor="" className="form__label">
-                                AWS Region*
+                                SMTP Username*
                             </label>
-                            <ReactSelect
-                                defaultValue={this.state.form.region}
-                                components={{
-                                    DropdownIndicator,
-                                    Option,
-                                }}
-                                tabIndex={4}
-                                placeholder="Select AWS Region"
-                                styles={{
-                                    ...multiSelectStyles,
-                                    multiValue: (base) => ({
-                                        ...base,
-                                        border: `1px solid var(--N200)`,
-                                        borderRadius: `4px`,
-                                        background: 'white',
-                                        height: '30px',
-                                        margin: '0 8px 0 0',
-                                        padding: '1px',
-                                    }),
-                                }}
-                                onBlur={(event) => this.handleBlur(event, 'region')}
-                                onChange={(selected) => this.handleAWSRegionChange(selected)}
-                                options={this.awsRegionListParsed}
+                            <input
+                                className="form__input"
+                                type="text"
+                                name="authUser"
+                                value={this.state.form.authUser}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleBlur}
+                                placeholder="Enter SMTP username"
+                                tabIndex={3}
+                                required
                             />
                             <span className="form__error">
-                                {!this.state.isValid.region ? (
+                                {!this.state.isValid.authUser ? (
                                     <>
                                         <Error className="form__icon form__icon--error" />
                                         This is a required field <br />
@@ -356,17 +291,28 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                                 ) : null}
                             </span>
                         </div>
+                        <div className="form__row smtp-protected-input">
+                            <ProtectedInput
+                                value={this.state.form.authPassword}
+                                onChange={this.handleInputChange}
+                                name="authPassword"
+                                error={!this.state.isValid.authPassword}
+                                label="SMTP Password*"
+                                labelClassName="form__label--fs-13 mb-8 fw-5 fs-13"
+                                placeholder="Enter SMTP password"
+                            />
+                        </div>
                         <label className="form__row">
                             <span className="form__label">Send email from*</span>
                             <input
                                 className="form__input"
                                 type="email"
-                                name="app-name"
+                                name="fromEmail"
                                 value={this.state.form.fromEmail}
-                                onBlur={(event) => this.handleBlur(event, 'fromEmail')}
+                                onChange={this.handleInputChange}
+                                onBlur={this.handleBlur}
                                 placeholder="Email"
                                 tabIndex={5}
-                                onChange={this.handleEmailChange}
                                 required
                             />
                             <span className="form__error">
@@ -377,10 +323,6 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                                         <br />
                                     </>
                                 ) : null}
-                            </span>
-                            <span className="form__text-field-info">
-                                <Info className="form__icon form__icon--info" />
-                                This email must be verified with SES.
                             </span>
                         </label>
                     </div>
@@ -399,7 +341,7 @@ export class SESConfigModal extends Component<SESConfigModalProps, SESConfigModa
                                 type="button"
                                 className="cta cancel mr-16"
                                 tabIndex={8}
-                                onClick={this.props.closeSESConfigModal}
+                                onClick={this.props.closeSMTPConfigModal}
                             >
                                 Cancel
                             </button>
